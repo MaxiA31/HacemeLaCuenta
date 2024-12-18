@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Página de Gastos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      padding: 10px;
+    }
+    .header-background {
+      height: 150px;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    .table-responsive {
+      overflow-x: auto;
+    }
+    #detalle-pago-table {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="header-background"></div>
+    <form id="gastos-form" class="d-flex justify-content-center">
+      <div style="width: 100%; max-width: 400px;">
+        <div class="form-group mb-3">
+          <label for="nombre">Nombre:</label>
+          <input type="text" id="nombre" class="form-control">
+        </div>
+        <div class="form-group mb-3">
+          <label for="aporto">Aportó algo?:</label>
+          <select id="aporto" class="form-control">
+            <option value="no" selected>No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+        <div class="form-group mb-3" id="tipo-aporto-group">
+          <label for="tipo-aporto">Tipo de aporte:</label>
+          <select id="tipo-aporto" class="form-control">
+            <option value="comida">Comida</option>
+            <option value="bebida">Bebida</option>
+          </select>
+        </div>
+        <div class="form-group mb-3">
+          <label for="asisitio-despues-de-comer">Asistió después de comer?:</label>
+          <select id="asisitio-despues-de-comer" class="form-control">
+            <option value="si">Sí</option>
+            <option value="no" selected>No</option>
+            <option value="">Seleccione...</option>
+          </select>
+        </div>
+        <div class="form-group mb-3">
+          <label for="monto">Monto:</label>
+          <input type="number" id="monto" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Agregar</button>
+      </div>
+    </form>
+    <div style="overflow-x: auto;">
+      <table id="gastos-table" class="table table-striped" style="min-width: 800px;">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Aportó algo?</th>
+            <th>Tipo de aporte</th>
+            <th>Asistió después de comer?</th>
+            <th>Monto</th>
+          </tr>
+        </thead>
+        <tbody id="gastos-tbody">
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="text-end">Total:$</td>
+            <td id="total-span">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="text-center">
+      <button id="calcular-gastos-btn" class="btn btn-primary">Calcular gastos</button>
+    </div>
+    <div class="table-responsive">
+      <table id="detalle-pago-table" class="table table-striped" style="display: none; width: 100%; max-width: 400px;">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Debe</th>
+            <th>Monto ($)</th>
+          </tr>
+        </thead>
+        <tbody id="detalle-pago-tbody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
