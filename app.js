@@ -93,7 +93,7 @@ calcularGastosBtn.addEventListener('click', () => {
   // Clear existing rows in detallePagoTbody
   detallePagoTbody.innerHTML = '';
 
-  const participantes = gastosTbody.children.length;
+  const participantes = [...new Set(Array.from(gastosTbody.children).map(gastoRow => gastoRow.cells[0].textContent.toLowerCase()))].length;
   const total = parseFloat(document.getElementById('total-span').textContent.split(': ')[1]);
 
   let totalComida = 0;
@@ -110,8 +110,9 @@ calcularGastosBtn.addEventListener('click', () => {
 
   const totalComidaSinDespuesDeComer = totalComida - Array.from(gastosTbody.children).filter((gastoRow) => gastoRow.cells[3].textContent === 'Sí').reduce((acum, gastoRow) => acum + parseFloat(gastoRow.cells[4].textContent), 0);
 
+  const rowsPorNombre = {};
   Array.from(gastosTbody.children).forEach((gastoRow) => {
-    const nombre = gastoRow.cells[0].textContent;
+    const nombre = gastoRow.cells[0].textContent.toLowerCase();
     const tipoAporto = gastoRow.cells[2].textContent;
     const monto = parseFloat(gastoRow.cells[4].textContent);
     const asisitioDespuesDeComer = gastoRow.cells[3].textContent === 'Sí';
@@ -128,7 +129,20 @@ calcularGastosBtn.addEventListener('click', () => {
       debePagarComida = totalComidaSinDespuesDeComer / participantes;
       debePagarBebida = totalBebida / participantes;
     }
-    const debePagar = debePagarComida + debePagarBebida;
+    let debePagar = debePagarComida + debePagarBebida;
+    if (!rowsPorNombre[nombre]) {
+      rowsPorNombre[nombre] = {
+        debePagarComida: 0,
+        debePagarBebida: 0,
+        debePagar: 0
+      };
+    }
+    rowsPorNombre[nombre].debePagarComida += debePagarComida;
+    rowsPorNombre[nombre].debePagarBebida += debePagarBebida;
+    rowsPorNombre[nombre].debePagar += debePagar;
+  });
+
+  Object.entries(rowsPorNombre).forEach(([nombre, {debePagarComida, debePagarBebida, debePagar}]) => {
     let debePagarTxt;
     if (debePagar > 0) {
       debePagarTxt = debePagar.toFixed(2);
@@ -136,12 +150,9 @@ calcularGastosBtn.addEventListener('click', () => {
       debePagarTxt = (-debePagar).toFixed(2);
     }
     const row = document.createElement('tr');
-    //mostrar por consola los datos calculados de debe pagar
-    console.log(`Nombre: ${nombre}, Debe Pagar Comida: ${debePagarComida}, Debe Pagar Bebida: ${debePagarBebida}`);
-    //voy a mostrar por consola los datos calculados junto al nombre de la persona
-    console.log(`Nombre: ${nombre}, Debe Pagar: ${debePagarTxt}`);
+    
     row.innerHTML = `
-      <td>${nombre}</td>
+      <td>${nombre.charAt(0).toUpperCase() + nombre.slice(1)}</td>
       <td>${debePagar > 0 ? 'Debe pagar' : 'Debe recibir'}</td>
       <td>${debePagarTxt}</td>
     `;
