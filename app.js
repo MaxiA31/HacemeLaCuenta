@@ -56,9 +56,9 @@ form.addEventListener('submit', (e) => {
   calcularTotal();
   //vacio campos
   nombreInput.value = '';
-  aportoSelect.value = 'no';
+  aportoSelect.value = '';
   tipoAportoSelect.value = 'comida';
-  asisitioDespuesDeComerSelect.value = 'no';
+  asisitioDespuesDeComerSelect.value = '';
   montoInput.value = 0;
 }
 );
