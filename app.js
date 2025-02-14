@@ -3,7 +3,7 @@ const form = document.getElementById('gastos-form');
 const nombreInput = document.getElementById('nombre');
 const aportoSelect = document.getElementById('aporto');
 const tipoAportoSelect = document.getElementById('tipo-aporto');
-const asisitioDespuesDeComerSelect = document.getElementById('asisitio-despues-de-comer');
+const asistioDespuesDeComerSelect = document.getElementById('asisitio-despues-de-comer');
 const montoInput = document.getElementById('monto');
 const gastosTbody = document.getElementById('gastos-tbody');
 const calcularGastosBtn = document.getElementById('calcular-gastos-btn');
@@ -17,8 +17,8 @@ function agregarGasto(gasto) {
     <td>${gasto.nombre}</td>
     <td>${gasto.aporto}</td>
     <td>${gasto.tipoAporto}</td>
-    <td>${gasto.asisitioDespuesDeComer}</td>
-    <td>${gasto.monto}</td>
+    <td>${gasto.asistioDespuesDeComer}</td>
+    <td>${gasto.monto.toFixed(2)}</td>
   `;
   gastosTbody.appendChild(gastoRow);
 }
@@ -27,137 +27,131 @@ function agregarGasto(gasto) {
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   const gasto = {
-    nombre: nombreInput.value,
+    nombre: nombreInput.value.trim(),
     aporto: aportoSelect.value,
     tipoAporto: tipoAportoSelect.value,
-    asisitioDespuesDeComer: asisitioDespuesDeComerSelect.value === '' ? 'no' : asisitioDespuesDeComerSelect.value,
+    asistioDespuesDeComer: asistioDespuesDeComerSelect.value || 'no',
     monto: parseFloat(montoInput.value) || 0
   };
-  if (gasto.aporto === 'no') {
+
+  // Validaciones
+  if (gasto.aporto === 'si') {
+    if (!gasto.tipoAporto) {
+      alert("Debe seleccionar un tipo de aporte");
+      return;
+    }
+    if (gasto.monto <= 0) {
+      alert("Debe ingresar un monto válido");
+      return;
+    }
+  } else {
     gasto.tipoAporto = '';
     gasto.monto = 0;
-    tipoAportoSelect.disabled = true;
-  } else {
-    tipoAportoSelect.disabled = false;
-  }
-  if (gasto.tipoAporto === "" && gasto.aporto === 'si') {
-    alert("Debe seleccionar un tipo de aporte");
-    return;
-  }
-  if (gasto.monto === 0 && gasto.aporto === 'si') {
-    alert("Debe ingresar un monto");
-    return;
   }
 
   agregarGasto(gasto);
   calcularTotal();
-  //vacio campos
+  
+  // Resetear campos
   nombreInput.value = '';
   aportoSelect.value = '';
   tipoAportoSelect.value = 'comida';
-  asisitioDespuesDeComerSelect.value = '';
-  montoInput.value = 0;
-}
-);
-// Evento de cambio en el select de aporte
-aportoSelect.addEventListener('change', (e) => {
-  if (e.target.value === 'no') {
-    tipoAportoSelect.disabled = true;
-  } else {
-    tipoAportoSelect.disabled = false;
-  }
+  asistioDespuesDeComerSelect.value = '';
+  montoInput.value = '';
 });
 
-// Función para calcular el total de los gastos
+// Habilitar/deshabilitar tipo de aporte
+aportoSelect.addEventListener('change', (e) => {
+  tipoAportoSelect.disabled = e.target.value !== 'si';
+});
+
+// Calcular total general
 function calcularTotal() {
-  const gastosRows = gastosTbody.children;
-  const total = Array.from(gastosRows).reduce((acum, gastoRow) => acum + parseFloat(gastoRow.cells[4].textContent), 0);
-  const totalSpan = document.getElementById('total-span');
-  totalSpan.textContent = `${total.toFixed(2)}`;
+  const total = Array.from(gastosTbody.children).reduce(
+    (sum, row) => sum + parseFloat(row.cells[4].textContent),
+    0
+  );
+  document.getElementById('total-span').textContent = total.toFixed(2);
 }
-// Evento de clic en el botón de calcular gastos
+
+// Calcular detalles de pagos
 calcularGastosBtn.addEventListener('click', () => {
-  if (gastosTbody.children.length === 0) {
+  if (!gastosTbody.children.length) {
     alert('No hay gastos para calcular');
     return;
   }
-  detallePagoTable.style.display = 'block';
 
-  // Clear existing rows in detallePagoTbody
+  // Obtener participantes
+  const todosParticipantes = Array.from(gastosTbody.children).map(
+    row => row.cells[0].textContent.toLowerCase()
+  );
+  const participantesComida = Array.from(gastosTbody.children)
+    .filter(row => row.cells[3].textContent === 'no')
+    .map(row => row.cells[0].textContent.toLowerCase());
+
+  const participantesUnicos = [...new Set(todosParticipantes)];
+  const participantesComidaUnicos = [...new Set(participantesComida)];
+  
+  // Calcular totales por categoría
+  let totalComida = 0, totalBebida = 0;
+  Array.from(gastosTbody.children).forEach(row => {
+    const monto = parseFloat(row.cells[4].textContent);
+    if (row.cells[2].textContent === 'comida') totalComida += monto;
+    if (row.cells[2].textContent === 'bebida') totalBebida += monto;
+  });
+
+  // Costos individuales
+  const costoPorComida = participantesComidaUnicos.length > 0 
+    ? totalComida / participantesComidaUnicos.length 
+    : 0;
+  const costoPorBebida = participantesUnicos.length > 0 
+    ? totalBebida / participantesUnicos.length 
+    : 0;
+
+  // Calcular deudas
+  const balances = {};
+  participantesUnicos.forEach(nombre => {
+    const aportes = Array.from(gastosTbody.children).filter(
+      row => row.cells[0].textContent.toLowerCase() === nombre
+    );
+
+    // Determinar asistencia
+    const asistioAComer = participantesComidaUnicos.includes(nombre);
+
+    // Inicializar balance
+    balances[nombre] = {
+      debeComida: asistioAComer ? costoPorComida : 0,
+      debeBebida: costoPorBebida,
+      aportoComida: 0,
+      aportoBebida: 0
+    };
+
+    // Aplicar aportes
+    aportes.forEach(aporte => {
+      const monto = parseFloat(aporte.cells[4].textContent);
+      if (aporte.cells[2].textContent === 'comida') {
+        balances[nombre].aportoComida += monto;
+      } else if (aporte.cells[2].textContent === 'bebida') {
+        balances[nombre].aportoBebida += monto;
+      }
+    });
+  });
+
+  // Generar resultados
   detallePagoTbody.innerHTML = '';
+  Object.entries(balances).forEach(([nombre, balance]) => {
+    const netoComida = balance.debeComida - balance.aportoComida;
+    const netoBebida = balance.debeBebida - balance.aportoBebida;
+    const total = netoComida + netoBebida;
 
-  const participantes = [...new Set(Array.from(gastosTbody.children).map(gastoRow => gastoRow.cells[0].textContent.toLowerCase()))].length;
-  const participantesComida = [...new Set(Array.from(gastosTbody.children).filter(gastoRow => gastoRow.cells[3].textContent === 'no').map(gastoRow => gastoRow.cells[0].textContent.toLowerCase()))].length;
-  const total = parseFloat(document.getElementById('total-span').textContent.split(': ')[1]);
-
-  let totalComida = 0;
-  let totalBebida = 0;
-  Array.from(gastosTbody.children).forEach((gastoRow) => {
-    const tipoAporto = gastoRow.cells[2].textContent;
-    const monto = parseFloat(gastoRow.cells[4].textContent);
-    if (tipoAporto === 'comida') {
-      totalComida += monto;
-    } else if (tipoAporto === 'bebida') {
-      totalBebida += monto;
-    }
-  });
-
-  const costoPorParticipanteComida = totalComida / participantesComida;
-  const costoPorParticipanteBebida = totalBebida / participantes;
-
-  const rowsPorNombre = {};
-  Array.from(gastosTbody.children).forEach((gastoRow) => {
-    const nombre = gastoRow.cells[0].textContent.toLowerCase();
-    const tipoAporto = gastoRow.cells[2].textContent;
-    const monto = parseFloat(gastoRow.cells[4].textContent);
-    const asisitioDespuesDeComer = gastoRow.cells[3].textContent === 'si';
-
-    let debePagarComida = 0;
-    let debePagarBebida = 0;
-
-    if (tipoAporto === 'comida' && !asisitioDespuesDeComer) {
-      debePagarComida = costoPorParticipanteComida - monto;
-    } else if (tipoAporto === 'bebida') {
-      debePagarBebida = costoPorParticipanteBebida - monto;
-    } else if (asisitioDespuesDeComer) {
-      debePagarComida = 0;
-      debePagarBebida = costoPorParticipanteBebida;
-    } else {
-      debePagarComida = costoPorParticipanteComida;
-      debePagarBebida = costoPorParticipanteBebida;
-    }
-    
-    let debePagar = debePagarComida + debePagarBebida;
-    if (!rowsPorNombre[nombre]) {
-      rowsPorNombre[nombre] = {
-        debePagarComida: 0,
-        debePagarBebida: 0,
-        debePagar: 0
-      };
-    }
-    rowsPorNombre[nombre].debePagarComida += debePagarComida;
-    rowsPorNombre[nombre].debePagarBebida += debePagarBebida;
-    rowsPorNombre[nombre].debePagar += debePagar;
-  });
-
-  Object.entries(rowsPorNombre).forEach(([nombre, {debePagarComida, debePagarBebida, debePagar}]) => {
-    let debePagarTxt;
-    if (debePagar > 0) {
-      debePagarTxt = debePagar.toFixed(2);
-    } else {
-      debePagarTxt = (-debePagar).toFixed(2);
-    }
     const row = document.createElement('tr');
-    
     row.innerHTML = `
       <td>${nombre.charAt(0).toUpperCase() + nombre.slice(1)}</td>
-      <td>${debePagar > 0 ? 'Debe pagar' : 'Debe recibir'}</td>
-      <td>${debePagarTxt}</td>
+      <td>${total > 0 ? 'Debe pagar' : total < 0 ? 'Debe recibir' : 'Nada'}</td>
+      <td>${Math.abs(total).toFixed(2)}</td>
     `;
-
     detallePagoTbody.appendChild(row);
   });
 
+  detallePagoTable.style.display = 'table';
 });
-
-
